@@ -1,9 +1,11 @@
-use clap::{Subcommand};
-use inquire::{Select, Text};
-use crate::{exec::Execute, graphql::create_issue::{create_issue, CreateIssue}};
-use std::env;
-use reqwest::blocking::Client;
+use crate::{
+    client::get_client,
+    exec::Execute,
+    graphql::create_issue::{create_issue, CreateIssue},
+};
+use clap::Subcommand;
 use graphql_client::GraphQLQuery;
+use inquire::{Select, Text};
 
 #[derive(Subcommand)]
 pub enum IssueCommand {
@@ -22,7 +24,6 @@ pub enum IssueCommand {
         id: String,
     },
 }
-
 
 #[derive(GraphQLQuery)]
 #[graphql(
@@ -58,42 +59,45 @@ impl Execute for IssueCommand {
                     .or_else(|| Text::new("Description: ").prompt().ok())
                     .unwrap();
 
-  let api_key = env::var("LINEAR_API_KEY")
-      .expect("LINEAR_API_KEY not set in .env or environment");
+                let client = get_client();
 
-                println!(
-                    "Title: {}\nAssignee: {}\nDescription: {}",
-                    &issue_title, &issue_assignee, &issue_description
-                );
-
-                let client = Client::builder()
-                  .default_headers(
-                    std::iter::once((
-                        reqwest::header::AUTHORIZATION,
-                        reqwest::header::HeaderValue::from_str(&api_key).unwrap()
-                        )).collect()
-                  ).build().unwrap();
-
-                let teams_response = graphql_client::reqwest::post_graphql_blocking::<Teams, _>(&client, "https://api.linear.app/graphql", teams::Variables {}).unwrap();
+                let teams_response = graphql_client::reqwest::post_graphql_blocking::<Teams, _>(
+                    &client,
+                    "https://api.linear.app/graphql",
+                    teams::Variables {},
+                )
+                .unwrap();
 
                 println!("{:?} {:?}", &teams_response.data, &teams_response.errors);
 
-                let teams =teams_response.data.unwrap().teams.nodes;
+                let teams = teams_response.data.unwrap().teams.nodes;
 
-                let team_name = Select::new(
-                  "Team: ",
-                  teams.iter().map(|x| x.name.clone()).collect()
-                ).prompt().unwrap();
+                let team_name =
+                    Select::new("Team: ", teams.iter().map(|x| x.name.clone()).collect())
+                        .prompt()
+                        .unwrap();
 
-                let team_id = teams.iter().find(|x| x.name == team_name).unwrap().id.clone();
+                let team_id = teams
+                    .iter()
+                    .find(|x| x.name == team_name)
+                    .unwrap()
+                    .id
+                    .clone();
 
-                let vs = create_issue::Variables { title: issue_title, description: issue_description , assignee_id: None, team_id: team_id };
+                let create_issue_response = graphql_client::reqwest::post_graphql_blocking::<CreateIssue, _>(
+                    &client,
+                    "https://api.linear.app/graphql",
+                    create_issue::Variables {
+                        title: issue_title,
+                        description: issue_description,
+                        assignee_id: None,
+                        team_id: team_id,
+                    },
+                )
+                .unwrap();
 
-                let r = graphql_client::reqwest::post_graphql_blocking::<CreateIssue, _>(&client, "https://api.linear.app/graphql", vs).unwrap();
-
-                println!("error: {:?}", r.errors);
-                println!("data: {:?}", r.data);
-
+                println!("error: {:?}", create_issue_response.errors);
+                println!("data: {:?}", create_issue_response.data);
             }
         }
     }
