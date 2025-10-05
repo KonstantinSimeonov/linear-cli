@@ -1,13 +1,9 @@
-use crate::{
-    exec::Execute,
-    graphql::{
-        blocking_request::gql_request,
-        queries::{
-            create_issue, issue_by_identifier, team_memberships, teams, CreateIssue,
-            IssueByIdentifier, TeamMemberships, Teams,
-        },
-    },
+use crate::graphql::blocking_request::gql_request;
+use crate::graphql::queries::{
+    create_issue, issue_by_identifier, team_memberships, teams, CreateIssue, IssueByIdentifier,
+    TeamMemberships, Teams,
 };
+use crate::Execute;
 use clap::Subcommand;
 use inquire::{Editor, Select, Text};
 use regex::Regex;
