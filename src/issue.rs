@@ -1,6 +1,6 @@
 use crate::{
     client::get_client,
-    exec::Execute, graphql::queries::{create_issue, teams, CreateIssue, Teams},
+    exec::Execute, graphql::{blocking_request::gql_request, queries::{create_issue, teams, CreateIssue, Teams}},
 };
 use clap::Subcommand;
 use inquire::{Select, Text};
@@ -43,18 +43,9 @@ impl Execute for IssueCommand {
                     .or_else(|| Text::new("Description: ").prompt().ok())
                     .unwrap();
 
-                let client = get_client();
+                let teams_response = gql_request::<Teams>(teams::Variables {}).unwrap();
 
-                let teams_response = graphql_client::reqwest::post_graphql_blocking::<Teams, _>(
-                    &client,
-                    "https://api.linear.app/graphql",
-                    teams::Variables {},
-                )
-                .unwrap();
-
-                println!("{:?} {:?}", &teams_response.data, &teams_response.errors);
-
-                let teams = teams_response.data.unwrap().teams.nodes;
+                let teams = teams_response.teams.nodes;
 
                 let team_name =
                     Select::new("Team: ", teams.iter().map(|x| x.name.clone()).collect())
@@ -68,9 +59,7 @@ impl Execute for IssueCommand {
                     .id
                     .clone();
 
-                let create_issue_response = graphql_client::reqwest::post_graphql_blocking::<CreateIssue, _>(
-                    &client,
-                    "https://api.linear.app/graphql",
+                let create_issue_response = gql_request::<CreateIssue>(
                     create_issue::Variables {
                         title: issue_title,
                         description: issue_description,
@@ -80,8 +69,7 @@ impl Execute for IssueCommand {
                 )
                 .unwrap();
 
-                println!("error: {:?}", create_issue_response.errors);
-                println!("data: {:?}", create_issue_response.data);
+                println!("data: {:?}", create_issue_response);
             }
         }
     }
