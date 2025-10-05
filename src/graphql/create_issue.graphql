@@ -13,3 +13,27 @@ mutation CreateIssue($title: String!, $description: String!, $teamId: String!, $
     }
   }
 }
+
+query IssueByIdentifier($id: String!) {
+  issue(id: $id) {
+    id
+    identifier
+    title
+    description
+    url
+    state {
+      id
+      name
+    }
+    assignee {
+      id
+      name
+      email
+    }
+    team {
+      id
+      name
+      key
+    }
+  }
+}

@@ -1,14 +1,13 @@
-use std::env;
-
 use crate::{
     exec::Execute,
     graphql::{
         blocking_request::gql_request,
-        queries::{create_issue, team_memberships, teams, CreateIssue, TeamMemberships, Teams},
+        queries::{create_issue, issue_by_identifier, team_memberships, teams, CreateIssue, IssueByIdentifier, TeamMemberships, Teams},
     },
 };
-use clap::{builder::OsStr, Subcommand};
+use clap::Subcommand;
 use inquire::{Select, Text, Editor};
+use regex::Regex;
 
 #[derive(Subcommand)]
 pub enum IssueCommand {
@@ -24,14 +23,42 @@ pub enum IssueCommand {
     },
 
     View {
-        id: String,
+        id: Option<String>,
+        
+        #[arg(short = 'w', long = "web")]
+        web: bool
     },
+}
+
+fn get_branch_name() -> String {
+  "kon/LC-12839-some-feat".to_string()
 }
 
 impl Execute for IssueCommand {
     fn execute(&self) {
         match self {
-            IssueCommand::View { id } => println!("View: {}", id),
+            IssueCommand::View { id, web } => {
+              let issue_id = id.clone().or_else(|| {
+                let br = get_branch_name();
+                let name = Regex::new(r"([A-Za-z]+-\d+)").unwrap().captures(
+                  br.as_str()
+                  );
+
+                Some(name.unwrap().get(1).unwrap().as_str().to_string())
+              }).unwrap();
+
+              let issue_response = gql_request::<IssueByIdentifier>(
+                issue_by_identifier::Variables { id: issue_id }
+              ).unwrap();
+
+              if *web {
+                webbrowser::open_browser(webbrowser::Browser::Default, issue_response.issue.url.as_str()).unwrap();
+              } else {
+                println!("{:?}", issue_response.issue);
+              }
+
+              unimplemented!()
+            },
             IssueCommand::Add {
                 title,
                 assignee,
