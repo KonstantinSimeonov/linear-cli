@@ -60,7 +60,22 @@ impl Execute for IssueCommand {
                     )
                     .unwrap();
                 } else {
-                    println!("{:?}", issue_response.issue);
+                    let issue = issue_response.issue;
+                    println!();
+                    println!("{} [{}]", issue.title, issue.identifier);
+                    println!(
+                        "Status: {} Assignee: {}",
+                        issue.state.name,
+                        issue
+                            .assignee
+                            .map(|assignee| assignee.name)
+                            .unwrap_or("<None>".to_string())
+                    );
+                    println!("{}", "─".repeat(30));
+                    println!(
+                        "{}",
+                        issue.description.unwrap_or("<No description>".to_string())
+                    );
                 }
             }
             IssueCommand::Add {
