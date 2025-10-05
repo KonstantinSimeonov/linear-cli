@@ -5,6 +5,7 @@ mutation CreateIssue($title: String!, $description: String!, $teamId: String!, $
       id
       title
       identifier
+      url
       assignee {
         id
         displayName

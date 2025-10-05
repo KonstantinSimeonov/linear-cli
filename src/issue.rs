@@ -41,7 +41,7 @@ impl Execute for IssueCommand {
 
                 let issue_title = title
                     .clone()
-                    .or_else(|| Text::new("Issue title: ").prompt().ok())
+                    .or_else(|| Text::new("Issue title:").prompt().ok())
                     .unwrap();
 
                 let issue_description = description
@@ -59,7 +59,7 @@ impl Execute for IssueCommand {
                 })
                 .unwrap();
 
-                println!("data: {:?}", create_issue_response);
+                println!("{}", create_issue_response.issue_create.issue.unwrap().url);
             }
         }
     }
@@ -70,7 +70,7 @@ fn prompt_for_team() -> Option<String> {
 
     let teams = teams_response.teams.nodes;
 
-    let team_name = Select::new("Team: ", teams.iter().map(|x| x.name.clone()).collect())
+    let team_name = Select::new("Team", teams.iter().map(|x| x.name.clone()).collect())
         .prompt()
         .unwrap();
 
@@ -92,7 +92,7 @@ fn prompt_for_assignee(team_id: &str, assignee: &Option<String>) -> Option<Strin
             .iter()
             .map(|n| n.user.display_name.clone())
             .collect::<Vec<String>>();
-        let assignee_name = Select::new("Assignee: ", m)
+        let assignee_name = Select::new("Assignee", m)
             .with_page_size(50)
             .prompt()
             .unwrap();
