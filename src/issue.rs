@@ -1,10 +1,9 @@
 use crate::{
     client::get_client,
     exec::Execute,
-    graphql::create_issue::{create_issue, CreateIssue},
+    graphql::{create_issue::{create_issue, CreateIssue}, teams::{teams, Teams}},
 };
 use clap::Subcommand;
-use graphql_client::GraphQLQuery;
 use inquire::{Select, Text};
 
 #[derive(Subcommand)]
@@ -25,14 +24,6 @@ pub enum IssueCommand {
     },
 }
 
-#[derive(GraphQLQuery)]
-#[graphql(
-    schema_path = "src/graphql/linear_schema.graphql",   // path to Linear schema you downloaded
-    query_path = "src/graphql/teams.graphql",
-    response_derives = "Debug, Serialize, Deserialize"
-)]
-pub struct Teams;
-
 impl Execute for IssueCommand {
     fn execute(&self) {
         match self {
@@ -46,12 +37,6 @@ impl Execute for IssueCommand {
                 let issue_title = title
                     .clone()
                     .or_else(|| Text::new("Issue title: ").prompt().ok())
-                    .unwrap();
-
-                let v = vec!["Al Capone".to_string(), "Jabrony Williams".to_string()];
-                let issue_assignee = assignee
-                    .clone()
-                    .or_else(|| Select::new("Assignee: ", v).prompt().ok())
                     .unwrap();
 
                 let issue_description = description
