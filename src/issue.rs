@@ -1,3 +1,5 @@
+use std::env;
+
 use crate::{
     exec::Execute,
     graphql::{
@@ -5,8 +7,8 @@ use crate::{
         queries::{create_issue, team_memberships, teams, CreateIssue, TeamMemberships, Teams},
     },
 };
-use clap::Subcommand;
-use inquire::{Select, Text};
+use clap::{builder::OsStr, Subcommand};
+use inquire::{Select, Text, Editor};
 
 #[derive(Subcommand)]
 pub enum IssueCommand {
@@ -35,6 +37,8 @@ impl Execute for IssueCommand {
                 assignee,
                 description,
             } => {
+                let team_id = prompt_for_team().unwrap();
+
                 let issue_title = title
                     .clone()
                     .or_else(|| Text::new("Issue title: ").prompt().ok())
@@ -42,10 +46,8 @@ impl Execute for IssueCommand {
 
                 let issue_description = description
                     .clone()
-                    .or_else(|| Text::new("Description: ").prompt().ok())
-                    .unwrap();
-
-                let team_id = prompt_for_team().unwrap();
+                    .or_else(|| Editor::new("Description").prompt().ok())
+                    .unwrap_or_default();
 
                 let issue_assignee = prompt_for_assignee(&team_id, assignee);
 
