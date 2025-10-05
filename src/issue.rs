@@ -1,7 +1,6 @@
 use crate::{
     client::get_client,
-    exec::Execute,
-    graphql::{create_issue::{create_issue, CreateIssue}, teams::{teams, Teams}},
+    exec::Execute, graphql::queries::{create_issue, teams, CreateIssue, Teams},
 };
 use clap::Subcommand;
 use inquire::{Select, Text};

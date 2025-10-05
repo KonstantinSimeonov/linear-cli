@@ -1,2 +1,1 @@
-pub mod create_issue;
-pub mod teams;
+pub mod queries;
