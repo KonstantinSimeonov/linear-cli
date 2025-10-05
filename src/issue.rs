@@ -2,11 +2,14 @@ use crate::{
     exec::Execute,
     graphql::{
         blocking_request::gql_request,
-        queries::{create_issue, issue_by_identifier, team_memberships, teams, CreateIssue, IssueByIdentifier, TeamMemberships, Teams},
+        queries::{
+            create_issue, issue_by_identifier, team_memberships, teams, CreateIssue,
+            IssueByIdentifier, TeamMemberships, Teams,
+        },
     },
 };
 use clap::Subcommand;
-use inquire::{Select, Text, Editor};
+use inquire::{Editor, Select, Text};
 use regex::Regex;
 
 #[derive(Subcommand)]
@@ -24,41 +27,46 @@ pub enum IssueCommand {
 
     View {
         id: Option<String>,
-        
-        #[arg(short = 'w', long = "web")]
-        web: bool
-    },
-}
 
-fn get_branch_name() -> String {
-  "kon/LC-12839-some-feat".to_string()
+        #[arg(short = 'w', long = "web")]
+        web: bool,
+    },
 }
 
 impl Execute for IssueCommand {
     fn execute(&self) {
         match self {
             IssueCommand::View { id, web } => {
-              let issue_id = id.clone().or_else(|| {
-                let br = get_branch_name();
-                let name = Regex::new(r"([A-Za-z]+-\d+)").unwrap().captures(
-                  br.as_str()
-                  );
+                let issue_id = id
+                    .clone()
+                    .or_else(|| {
+                        let branch_name = get_branch_name().unwrap();
+                        let name = Regex::new(r"([A-Za-z]+-\d+)")
+                            .unwrap()
+                            .captures(branch_name.as_str())
+                            .and_then(|capture| capture.get(1))
+                            .map(|capture| capture.as_str().to_string());
 
-                Some(name.unwrap().get(1).unwrap().as_str().to_string())
-              }).unwrap();
+                        name
+                    })
+                    .unwrap();
 
-              let issue_response = gql_request::<IssueByIdentifier>(
-                issue_by_identifier::Variables { id: issue_id }
-              ).unwrap();
+                let issue_response =
+                    gql_request::<IssueByIdentifier>(issue_by_identifier::Variables {
+                        id: issue_id,
+                    })
+                    .unwrap();
 
-              if *web {
-                webbrowser::open_browser(webbrowser::Browser::Default, issue_response.issue.url.as_str()).unwrap();
-              } else {
-                println!("{:?}", issue_response.issue);
-              }
-
-              unimplemented!()
-            },
+                if *web {
+                    webbrowser::open_browser(
+                        webbrowser::Browser::Default,
+                        issue_response.issue.url.as_str(),
+                    )
+                    .unwrap();
+                } else {
+                    println!("{:?}", issue_response.issue);
+                }
+            }
             IssueCommand::Add {
                 title,
                 assignee,
@@ -90,6 +98,13 @@ impl Execute for IssueCommand {
             }
         }
     }
+}
+
+fn get_branch_name() -> std::io::Result<String> {
+    std::process::Command::new("git")
+        .args(["rev-parse", "--abbrev-ref", "HEAD"])
+        .output()
+        .map(|output| String::from_utf8(output.stdout).unwrap())
 }
 
 fn prompt_for_team() -> Option<String> {
