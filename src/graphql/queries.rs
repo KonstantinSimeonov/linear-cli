@@ -15,3 +15,11 @@ pub struct CreateIssue;
     response_derives = "Debug, Serialize, Deserialize"
 )]
 pub struct Teams;
+
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "src/graphql/linear_schema.graphql",   // path to Linear schema you downloaded
+    query_path = "src/graphql/teams.graphql",
+    response_derives = "Debug, Serialize, Deserialize"
+)]
+pub struct TeamMemberships;

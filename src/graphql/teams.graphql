@@ -8,3 +8,18 @@ query Teams {
     }
   }
 }
+
+query TeamMemberships($teamId: String!) {
+  team(id: $teamId) {
+    id
+    name
+    memberships {
+      nodes {
+        user {
+          id
+          displayName
+        }
+      }
+    }
+  }
+}

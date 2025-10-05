@@ -1,6 +1,6 @@
 use crate::{
     client::get_client,
-    exec::Execute, graphql::{blocking_request::gql_request, queries::{create_issue, teams, CreateIssue, Teams}},
+    exec::Execute, graphql::{blocking_request::gql_request, queries::{create_issue, teams, team_memberships, CreateIssue, TeamMemberships, Teams}},
 };
 use clap::Subcommand;
 use inquire::{Select, Text};
@@ -32,7 +32,6 @@ impl Execute for IssueCommand {
                 assignee,
                 description,
             } => {
-                println!("{:?}", (&title, &assignee, &description));
                 let issue_title = title
                     .clone()
                     .or_else(|| Text::new("Issue title: ").prompt().ok())
@@ -58,12 +57,21 @@ impl Execute for IssueCommand {
                     .unwrap()
                     .id
                     .clone();
+                  let memberships = gql_request::<TeamMemberships>(team_memberships::Variables { team_id: team_id.clone() }).unwrap();
+
+                let issue_assignee = assignee.clone().or_else(move || {
+                  let m = memberships.team.memberships.nodes.iter().map(|n| n.user.display_name.clone()).collect::<Vec<String>>();
+                  let assignee_name = Select::new("Assignee: ", m).with_page_size(50).prompt().unwrap();
+                  let assignee_id = memberships.team.memberships.nodes.iter().find(|n| n.user.display_name == assignee_name);
+
+                  assignee_id.map(|x| x.user.id.clone())
+                });
 
                 let create_issue_response = gql_request::<CreateIssue>(
                     create_issue::Variables {
                         title: issue_title,
                         description: issue_description,
-                        assignee_id: None,
+                        assignee_id: issue_assignee,
                         team_id: team_id,
                     },
                 )
