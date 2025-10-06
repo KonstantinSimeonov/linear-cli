@@ -17,6 +17,9 @@ pub enum IssueCommand {
 
         #[arg(short, long)]
         description: Option<String>,
+
+        #[arg(short, long)]
+        parent: Option<String>
     },
 
     View {
@@ -35,7 +38,8 @@ impl Execute for IssueCommand {
                 title,
                 assignee,
                 description,
-            } => issue_create(title, assignee, description),
+                parent
+            } => issue_create(title, assignee, description, parent),
         }
     }
 }

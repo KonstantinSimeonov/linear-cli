@@ -1,6 +1,7 @@
 use crate::graphql::blocking_request::gql_request;
 use crate::graphql::queries::{
-    create_issue, team_memberships, teams, CreateIssue, TeamMemberships, Teams,
+    create_issue, issue_by_identifier, team_memberships, teams, CreateIssue, IssueByIdentifier,
+    TeamMemberships, Teams,
 };
 use inquire::{Editor, Select, Text};
 
@@ -8,6 +9,7 @@ pub fn issue_create(
     title: &Option<String>,
     assignee: &Option<String>,
     description: &Option<String>,
+    parent: &Option<String>,
 ) {
     let team_id = prompt_for_team().unwrap();
 
@@ -23,11 +25,20 @@ pub fn issue_create(
 
     let issue_assignee = prompt_for_assignee(&team_id, assignee);
 
+    let parent_id = parent.clone().and_then(|identifier| {
+        gql_request::<IssueByIdentifier>(issue_by_identifier::Variables {
+            id: identifier.clone(),
+        })
+        .map(|data| data.issue.id)
+        .ok()
+    });
+
     let create_issue_response = gql_request::<CreateIssue>(create_issue::Variables {
         title: issue_title,
         description: issue_description,
         assignee_id: issue_assignee,
         team_id: team_id,
+        parent_id: parent_id,
     })
     .unwrap();
 
