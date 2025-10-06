@@ -1,9 +1,11 @@
 use reqwest::blocking::Client;
 use std::env;
 
-pub fn get_client() -> Client {
+use crate::cli_config::LrConfig;
+
+pub fn get_client(config: &LrConfig) -> Client {
     let api_key =
-        env::var("LINEAR_API_KEY").expect("LINEAR_API_KEY not set in .env or environment");
+        env::var("LINEAR_API_KEY").ok().or_else(|| config.api_key.clone()).expect("No api key in config or LINEAR_API_KEY env var");
 
     let client = Client::builder()
         .default_headers(

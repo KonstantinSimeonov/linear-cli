@@ -1,11 +1,11 @@
 use regex::Regex;
 
-use crate::graphql::{
+use crate::{cli_config::LrConfig, graphql::{
     blocking_request::gql_request,
     queries::{issue_by_identifier, IssueByIdentifier},
-};
+}};
 
-pub fn issue_view(id: &Option<String>, web: bool) {
+pub fn issue_view(config: &LrConfig, id: &Option<String>, web: bool) {
     let issue_id = id
         .clone()
         .or_else(|| {
@@ -21,7 +21,7 @@ pub fn issue_view(id: &Option<String>, web: bool) {
         .unwrap();
 
     let issue_response =
-        gql_request::<IssueByIdentifier>(issue_by_identifier::Variables { id: issue_id }).unwrap();
+        gql_request::<IssueByIdentifier>(config, issue_by_identifier::Variables { id: issue_id }).unwrap();
 
     if web {
         webbrowser::open_browser(

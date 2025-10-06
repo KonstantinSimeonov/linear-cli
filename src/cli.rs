@@ -1,4 +1,4 @@
-use crate::issue::IssueCommand;
+use crate::{cli_config::LrConfig, issue::IssueCommand};
 use crate::exec::Execute;
 
 use clap::{Parser, Subcommand};
@@ -20,10 +20,10 @@ pub enum Command {
 }
 
 impl Execute for Command {
-  fn execute(&self) {
+  fn execute(&self, config: &LrConfig) {
       match self {
           Command::Login => unimplemented!(),
-          Command::Issue(cmd) => cmd.execute(),
+          Command::Issue(cmd) => cmd.execute(config),
       }
   }
 }

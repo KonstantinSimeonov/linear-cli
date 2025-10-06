@@ -1,6 +1,7 @@
 mod create;
 mod view;
 
+use crate::cli_config::LrConfig;
 use crate::issue::create::issue_create;
 use crate::issue::view::issue_view;
 use crate::Execute;
@@ -31,15 +32,15 @@ pub enum IssueCommand {
 }
 
 impl Execute for IssueCommand {
-    fn execute(&self) {
+    fn execute(&self, config: &LrConfig) {
         match self {
-            IssueCommand::View { id, web } => issue_view(id, *web),
+            IssueCommand::View { id, web } => issue_view(config, id, *web),
             IssueCommand::Add {
                 title,
                 assignee,
                 description,
                 parent
-            } => issue_create(title, assignee, description, parent),
+            } => issue_create(config, title, assignee, description, parent),
         }
     }
 }
