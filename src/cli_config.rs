@@ -7,6 +7,7 @@ use dirs::home_dir;
 pub struct LrConfig {
     pub api_key: Option<String>,
     pub default_team: Option<String>,
+    pub branch_prefix: Option<String>
 }
 
 pub fn load_config() -> LrConfig {
@@ -18,10 +19,10 @@ pub fn load_config() -> LrConfig {
             Ok(cfg) => cfg,
             Err(err) => {
                 eprintln!("⚠️ Failed to parse config at {:?}: {}", path, err);
-                LrConfig { api_key: None, default_team: None }
+                LrConfig { api_key: None, default_team: None, branch_prefix: None }
             }
         }
     } else {
-        LrConfig { api_key: None, default_team: None }
+        LrConfig { api_key: None, default_team: None, branch_prefix: None }
     }
 }

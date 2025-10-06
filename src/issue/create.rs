@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use crate::cli_config::LrConfig;
 use crate::graphql::blocking_request::gql_request;
 use crate::graphql::queries::{
@@ -12,6 +14,7 @@ pub fn issue_create(
     assignee: &Option<String>,
     description: &Option<String>,
     parent: &Option<String>,
+    brach: bool
 ) {
     let team_id = prompt_for_team(config).unwrap();
 
@@ -50,7 +53,16 @@ pub fn issue_create(
     )
     .unwrap();
 
-    println!("{}", create_issue_response.issue_create.issue.unwrap().url);
+    let created_issue = create_issue_response.issue_create.issue.unwrap();
+
+    println!("{}", &created_issue.url);
+
+    if brach {
+      let branch_suffix = created_issue.url.split("/").last().unwrap();
+      let branch_prefix = config.branch_prefix.clone().map(|prefix| format!("{}/{}", &prefix, &created_issue.identifier)).unwrap_or(created_issue.identifier.clone());
+      let branch_name = format!("{}-{}", branch_prefix, branch_suffix);
+      create_branch(&branch_name).unwrap();
+    }
 }
 
 fn prompt_for_team(config: &LrConfig) -> Option<String> {
@@ -108,4 +120,11 @@ fn prompt_for_assignee(
     });
 
     issue_assignee
+}
+
+fn create_branch(name: &str) -> std::io::Result<String> {
+    std::process::Command::new("git")
+        .args(["switch", "-C", name])
+        .output()
+        .map(|output| String::from_utf8(output.stdout).unwrap())
 }

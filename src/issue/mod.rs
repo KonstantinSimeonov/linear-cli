@@ -20,7 +20,10 @@ pub enum IssueCommand {
         description: Option<String>,
 
         #[arg(short, long)]
-        parent: Option<String>
+        parent: Option<String>,
+
+        #[arg(short, long)]
+        branch: bool
     },
 
     View {
@@ -39,8 +42,9 @@ impl Execute for IssueCommand {
                 title,
                 assignee,
                 description,
-                parent
-            } => issue_create(config, title, assignee, description, parent),
+                parent,
+                branch
+            } => issue_create(config, title, assignee, description, parent, *branch),
         }
     }
 }
