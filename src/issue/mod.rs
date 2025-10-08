@@ -1,8 +1,10 @@
 mod create;
 mod view;
+mod list;
 
 use crate::cli_config::LrConfig;
 use crate::issue::create::issue_create;
+use crate::issue::list::issue_list;
 use crate::issue::view::issue_view;
 use crate::Execute;
 use clap::Subcommand;
@@ -32,6 +34,11 @@ pub enum IssueCommand {
         #[arg(short = 'w', long = "web")]
         web: bool,
     },
+
+    List {
+      #[arg(short, long)]
+      status: Option<String>
+    }
 }
 
 impl Execute for IssueCommand {
@@ -45,6 +52,7 @@ impl Execute for IssueCommand {
                 parent,
                 branch
             } => issue_create(config, title, assignee, description, parent, *branch),
+            IssueCommand::List { status } => issue_list(config, status),
         }
     }
 }

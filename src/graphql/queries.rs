@@ -1,5 +1,7 @@
 use graphql_client::GraphQLQuery;
 
+pub type DateTime = chrono::DateTime<chrono::Utc>;
+
 #[derive(GraphQLQuery)]
 #[graphql(
     schema_path = "src/graphql/linear_schema.graphql",
@@ -31,3 +33,11 @@ pub struct TeamMemberships;
     response_derives = "Debug, Serialize, Deserialize"
 )]
 pub struct IssueByIdentifier;
+
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "src/graphql/linear_schema.graphql",   // path to Linear schema you downloaded
+    query_path = "src/graphql/list.graphql",
+    response_derives = "Debug, Serialize, Deserialize"
+)]
+pub struct MyIssues;
