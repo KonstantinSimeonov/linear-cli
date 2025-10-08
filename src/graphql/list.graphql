@@ -2,7 +2,7 @@ query MyIssues($first: Int = 20, $status: String) {
   viewer {
     id
     name
-    assignedIssues(first: $first, filter: { state: { name: { eq: $status } } }) {
+    assignedIssues(first: $first, filter: { state: { name: { contains: $status } } }) {
       nodes {
         id
         identifier

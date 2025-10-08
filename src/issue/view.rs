@@ -1,3 +1,4 @@
+use colored::*;
 use regex::Regex;
 
 use crate::{
@@ -44,7 +45,7 @@ pub fn issue_view(config: &LrConfig, id: &Option<String>, web: bool) {
 
 fn render_issue(issue: &IssueByIdentifierIssue) {
     println!();
-    println!("{} [{}]", &issue.title, &issue.identifier);
+    println!("[{}] {}", &issue.identifier.bold().blue(), &issue.title.bold());
     println!(
         "Status: {} Assignee: {}",
         &issue.state.name,
@@ -59,7 +60,8 @@ fn render_issue(issue: &IssueByIdentifierIssue) {
         .description
         .as_ref()
         .map(|description| description.as_str())
-        .unwrap_or("<No description>");
+        .unwrap_or("<No description>")
+        .italic();
     println!("{}", description);
 }
 

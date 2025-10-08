@@ -37,7 +37,10 @@ pub enum IssueCommand {
 
     List {
       #[arg(short, long)]
-      status: Option<String>
+      status: Option<String>,
+
+      #[arg(short = 'c', long = "count")]
+      count: Option<usize>
     }
 }
 
@@ -52,7 +55,7 @@ impl Execute for IssueCommand {
                 parent,
                 branch
             } => issue_create(config, title, assignee, description, parent, *branch),
-            IssueCommand::List { status } => issue_list(config, status),
+            IssueCommand::List { status, count } => issue_list(config, status, count),
         }
     }
 }
