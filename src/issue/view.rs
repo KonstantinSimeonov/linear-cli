@@ -1,9 +1,15 @@
 use regex::Regex;
 
-use crate::{cli_config::LrConfig, graphql::{
-    blocking_request::gql_request,
-    queries::{issue_by_identifier, IssueByIdentifier},
-}};
+use crate::{
+    cli_config::LrConfig,
+    graphql::{
+        blocking_request::gql_request,
+        queries::{
+            issue_by_identifier::{self, IssueByIdentifierIssue},
+            IssueByIdentifier,
+        },
+    },
+};
 
 pub fn issue_view(config: &LrConfig, id: &Option<String>, web: bool) {
     let issue_id = id
@@ -21,7 +27,8 @@ pub fn issue_view(config: &LrConfig, id: &Option<String>, web: bool) {
         .unwrap();
 
     let issue_response =
-        gql_request::<IssueByIdentifier>(config, issue_by_identifier::Variables { id: issue_id }).unwrap();
+        gql_request::<IssueByIdentifier>(config, issue_by_identifier::Variables { id: issue_id })
+            .unwrap();
 
     if web {
         webbrowser::open_browser(
@@ -32,22 +39,28 @@ pub fn issue_view(config: &LrConfig, id: &Option<String>, web: bool) {
         return;
     }
 
-    let issue = issue_response.issue;
+    render_issue(&issue_response.issue);
+}
+
+fn render_issue(issue: &IssueByIdentifierIssue) {
     println!();
-    println!("{} [{}]", issue.title, issue.identifier);
+    println!("{} [{}]", &issue.title, &issue.identifier);
     println!(
         "Status: {} Assignee: {}",
-        issue.state.name,
+        &issue.state.name,
         issue
             .assignee
-            .map(|assignee| assignee.name)
-            .unwrap_or("<None>".to_string())
+            .as_ref()
+            .map(|assignee| assignee.name.as_str())
+            .unwrap_or("<None>")
     );
     println!("{}", "─".repeat(30));
-    println!(
-        "{}",
-        issue.description.unwrap_or("<No description>".to_string())
-    );
+    let description = issue
+        .description
+        .as_ref()
+        .map(|description| description.as_str())
+        .unwrap_or("<No description>");
+    println!("{}", description);
 }
 
 fn get_branch_name() -> std::io::Result<String> {
