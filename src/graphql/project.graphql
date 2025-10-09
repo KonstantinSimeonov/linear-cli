@@ -1,0 +1,34 @@
+query Projects(
+  $first: Int = 20,
+  $after: String
+) {
+  projects(first: $first, after: $after) {
+    nodes {
+      id
+      name
+      description
+      state
+      color
+      slugId
+      startedAt
+      createdAt
+      updatedAt
+      lead {
+        id
+        name
+        email
+      }
+      members {
+        nodes {
+          id
+          name
+          email
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}

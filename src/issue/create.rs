@@ -1,10 +1,9 @@
-use std::fmt::format;
+use std::iter;
 
 use crate::cli_config::LrConfig;
 use crate::graphql::blocking_request::gql_request;
 use crate::graphql::queries::{
-    create_issue, issue_by_identifier, team_memberships, teams, CreateIssue, IssueByIdentifier,
-    TeamMemberships, Teams,
+    create_issue, issue_by_identifier, projects, team_memberships, teams, CreateIssue, IssueByIdentifier, Projects, TeamMemberships, Teams
 };
 use inquire::{Editor, Select, Text};
 
@@ -14,6 +13,7 @@ pub fn issue_create(
     assignee: &Option<String>,
     description: &Option<String>,
     parent: &Option<String>,
+    project: &Option<String>,
     brach: bool
 ) {
     let team_id = prompt_for_team(config).unwrap();
@@ -41,14 +41,17 @@ pub fn issue_create(
         .ok()
     });
 
+    let project_id = prompt_for_project(config, project);
+
     let create_issue_response = gql_request::<CreateIssue>(
         config,
         create_issue::Variables {
             title: issue_title,
             description: issue_description,
             assignee_id: issue_assignee,
-            team_id: team_id,
-            parent_id: parent_id,
+            team_id,
+            parent_id,
+            project_id
         },
     )
     .unwrap();
@@ -82,6 +85,28 @@ fn prompt_for_team(config: &LrConfig) -> Option<String> {
 
     let team_id = teams.iter().find(|x| x.name == team_name);
     team_id.map(|t| t.id.clone())
+}
+
+fn prompt_for_project(
+  config: &LrConfig,
+  project: &Option<String>
+  ) -> Option<String> {
+  let projects_response = gql_request::<Projects>(config, projects::Variables {
+    first: Some(50),
+    after: None
+  }).unwrap();
+
+  let projects = projects_response.projects.nodes;
+
+  project
+    .clone()
+    .or_else(|| {
+      let opts: Vec<String> = iter::once("<None>".to_string()).chain(projects.iter().map(|proj| proj.name.clone())).collect();
+      Select::new("Project", opts).prompt().ok()
+    })
+    .and_then(move |project| {
+      projects.iter().find(|proj| proj.name == project).map(|proj| proj.id.clone())
+    })
 }
 
 fn prompt_for_assignee(

@@ -1,0 +1,44 @@
+mutation UpdateIssue(
+  $id: String!,
+  $title: String,
+  $description: String,
+  $assigneeId: String,
+  $priority: Int,
+  $teamId: String,
+  $stateId: String
+) {
+  issueUpdate(
+    id: $id,
+    input: {
+      title: $title,
+      description: $description,
+      assigneeId: $assigneeId,
+      priority: $priority,
+      teamId: $teamId,
+      stateId: $stateId
+    }
+  ) {
+    success
+    issue {
+      id
+      identifier
+      title
+      description
+      priority
+      state {
+        id
+        name
+      }
+      assignee {
+        id
+        name
+      }
+      team {
+        id
+        name
+        key
+      }
+      updatedAt
+    }
+  }
+}

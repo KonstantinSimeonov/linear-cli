@@ -1,5 +1,19 @@
-mutation CreateIssue($title: String!, $description: String!, $teamId: String!, $assigneeId: String, $parentId: String) {
-  issueCreate(input: { title: $title, description: $description, assigneeId: $assigneeId, teamId: $teamId, parentId: $parentId }) {
+mutation CreateIssue(
+  $title: String!,
+  $description: String!,
+  $teamId: String!,
+  $projectId: String,
+  $assigneeId: String,
+  $parentId: String
+) {
+  issueCreate(input: {
+    title: $title,
+    description: $description,
+    assigneeId: $assigneeId,
+    teamId: $teamId,
+    parentId: $parentId,
+    projectId: $projectId
+  }) {
     success
     issue {
       id
