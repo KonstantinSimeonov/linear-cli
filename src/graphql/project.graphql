@@ -7,7 +7,9 @@ query Projects(
       id
       name
       description
-      state
+      status {
+        name
+      }
       color
       slugId
       startedAt
