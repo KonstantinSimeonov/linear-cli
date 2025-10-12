@@ -3,34 +3,30 @@ use std::iter;
 use crate::cli_config::LrConfig;
 use crate::graphql::blocking_request::gql_request;
 use crate::graphql::queries::{
-    create_issue, issue_by_identifier, projects, team_memberships, teams, CreateIssue, IssueByIdentifier, Projects, TeamMemberships, Teams
+    create_issue, issue_by_identifier, projects, team_memberships, teams, CreateIssue,
+    IssueByIdentifier, Projects, TeamMemberships, Teams,
 };
+use clap::Args;
 use inquire::{Editor, Select, Text};
 
-pub fn issue_create(
-    config: &LrConfig,
-    title: &Option<String>,
-    assignee: &Option<String>,
-    description: &Option<String>,
-    parent: &Option<String>,
-    project: &Option<String>,
-    brach: bool
-) {
+pub fn issue_create(config: &LrConfig, args: &AddIssueArgs) {
     let team_id = prompt_for_team(config).unwrap();
 
-    let issue_title = title
+    let issue_title = args
+        .title
         .clone()
         .or_else(|| Text::new("Issue title:").prompt().ok())
         .unwrap();
 
-    let issue_description = description
+    let issue_description = args
+        .description
         .clone()
         .or_else(|| Editor::new("Description").prompt().ok())
         .unwrap_or_default();
 
-    let issue_assignee = prompt_for_assignee(config, &team_id, assignee);
+    let issue_assignee = prompt_for_assignee(config, &team_id, &args.assignee);
 
-    let parent_id = parent.clone().and_then(|identifier| {
+    let parent_id = args.parent.clone().and_then(|identifier| {
         gql_request::<IssueByIdentifier>(
             config,
             issue_by_identifier::Variables {
@@ -41,7 +37,7 @@ pub fn issue_create(
         .ok()
     });
 
-    let project_id = prompt_for_project(config, project);
+    let project_id = prompt_for_project(config, &args.project);
 
     let create_issue_response = gql_request::<CreateIssue>(
         config,
@@ -51,7 +47,7 @@ pub fn issue_create(
             assignee_id: issue_assignee,
             team_id,
             parent_id,
-            project_id
+            project_id,
         },
     )
     .unwrap();
@@ -60,11 +56,15 @@ pub fn issue_create(
 
     println!("{}", &created_issue.url);
 
-    if brach {
-      let branch_suffix = created_issue.url.split("/").last().unwrap();
-      let branch_prefix = config.branch_prefix.clone().map(|prefix| format!("{}/{}", &prefix, &created_issue.identifier)).unwrap_or(created_issue.identifier.clone());
-      let branch_name = format!("{}-{}", branch_prefix, branch_suffix);
-      create_branch(&branch_name).unwrap();
+    if args.branch {
+        let branch_suffix = created_issue.url.split("/").last().unwrap();
+        let branch_prefix = config
+            .branch_prefix
+            .clone()
+            .map(|prefix| format!("{}/{}", &prefix, &created_issue.identifier))
+            .unwrap_or(created_issue.identifier.clone());
+        let branch_name = format!("{}-{}", branch_prefix, branch_suffix);
+        create_branch(&branch_name).unwrap();
     }
 }
 
@@ -87,26 +87,32 @@ fn prompt_for_team(config: &LrConfig) -> Option<String> {
     team_id.map(|t| t.id.clone())
 }
 
-fn prompt_for_project(
-  config: &LrConfig,
-  project: &Option<String>
-  ) -> Option<String> {
-  let projects_response = gql_request::<Projects>(config, projects::Variables {
-    first: Some(50),
-    after: None
-  }).unwrap();
+fn prompt_for_project(config: &LrConfig, project: &Option<String>) -> Option<String> {
+    let projects_response = gql_request::<Projects>(
+        config,
+        projects::Variables {
+            first: Some(50),
+            after: None,
+        },
+    )
+    .unwrap();
 
-  let projects = projects_response.projects.nodes;
+    let projects = projects_response.projects.nodes;
 
-  project
-    .clone()
-    .or_else(|| {
-      let opts: Vec<String> = iter::once("<None>".to_string()).chain(projects.iter().map(|proj| proj.name.clone())).collect();
-      Select::new("Project", opts).prompt().ok()
-    })
-    .and_then(move |project| {
-      projects.iter().find(|proj| proj.name == project).map(|proj| proj.id.clone())
-    })
+    project
+        .clone()
+        .or_else(|| {
+            let opts: Vec<String> = iter::once("<None>".to_string())
+                .chain(projects.iter().map(|proj| proj.name.clone()))
+                .collect();
+            Select::new("Project", opts).prompt().ok()
+        })
+        .and_then(move |project| {
+            projects
+                .iter()
+                .find(|proj| proj.name == project)
+                .map(|proj| proj.id.clone())
+        })
 }
 
 fn prompt_for_assignee(
@@ -152,4 +158,25 @@ fn create_branch(name: &str) -> std::io::Result<String> {
         .args(["switch", "-C", name])
         .output()
         .map(|output| String::from_utf8(output.stdout).unwrap())
+}
+
+#[derive(Args)]
+pub struct AddIssueArgs {
+    #[arg(short, long)]
+    title: Option<String>,
+
+    #[arg(short, long)]
+    assignee: Option<String>,
+
+    #[arg(short, long)]
+    description: Option<String>,
+
+    #[arg(short = 'p', long)]
+    parent: Option<String>,
+
+    #[arg(short, long)]
+    branch: bool,
+
+    #[arg(short = 'j', long)]
+    project: Option<String>,
 }
