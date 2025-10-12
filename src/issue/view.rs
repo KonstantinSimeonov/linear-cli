@@ -1,5 +1,6 @@
 use colored::*;
 use regex::Regex;
+use clap::Args;
 
 use crate::{
     cli_config::LrConfig,
@@ -12,8 +13,8 @@ use crate::{
     },
 };
 
-pub fn issue_view(config: &LrConfig, id: &Option<String>, web: bool) {
-    let issue_id = id
+pub fn issue_view(config: &LrConfig, args: &ViewIssueArgs) {
+    let issue_id = args.id
         .clone()
         .or_else(|| {
             let branch_name = get_branch_name().unwrap();
@@ -31,7 +32,7 @@ pub fn issue_view(config: &LrConfig, id: &Option<String>, web: bool) {
         gql_request::<IssueByIdentifier>(config, issue_by_identifier::Variables { id: issue_id })
             .unwrap();
 
-    if web {
+    if args.web {
         webbrowser::open_browser(
             webbrowser::Browser::Default,
             issue_response.issue.url.as_str(),
@@ -70,4 +71,12 @@ fn get_branch_name() -> std::io::Result<String> {
         .args(["rev-parse", "--abbrev-ref", "HEAD"])
         .output()
         .map(|output| String::from_utf8(output.stdout).unwrap())
+}
+
+#[derive(Args)]
+pub struct ViewIssueArgs {
+        id: Option<String>,
+
+        #[arg(short = 'w', long = "web")]
+        web: bool,
 }
