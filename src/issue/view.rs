@@ -1,6 +1,6 @@
+use clap::Args;
 use colored::*;
 use regex::Regex;
-use clap::Args;
 
 use crate::{
     cli_config::LrConfig,
@@ -14,7 +14,8 @@ use crate::{
 };
 
 pub fn issue_view(config: &LrConfig, args: &ViewIssueArgs) {
-    let issue_id = args.id
+    let issue_id = args
+        .id
         .clone()
         .or_else(|| {
             let branch_name = get_branch_name().unwrap();
@@ -46,7 +47,11 @@ pub fn issue_view(config: &LrConfig, args: &ViewIssueArgs) {
 
 fn render_issue(issue: &IssueByIdentifierIssue) {
     println!();
-    println!("[{}] {}", &issue.identifier.bold().blue(), &issue.title.bold());
+    println!(
+        "[{}] {}",
+        &issue.identifier.bold().blue(),
+        &issue.title.bold()
+    );
     println!(
         "Status: {} Assignee: {}",
         &issue.state.name,
@@ -75,8 +80,8 @@ fn get_branch_name() -> std::io::Result<String> {
 
 #[derive(Args)]
 pub struct ViewIssueArgs {
-        id: Option<String>,
+    id: Option<String>,
 
-        #[arg(short = 'w', long = "web")]
-        web: bool,
+    #[arg(short = 'w', long = "web")]
+    web: bool,
 }
