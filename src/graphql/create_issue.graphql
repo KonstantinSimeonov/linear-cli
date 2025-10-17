@@ -28,7 +28,7 @@ mutation CreateIssue(
   }
 }
 
-query IssueByIdentifier($id: String!) {
+query IssueByIdentifier($id: String!, $commentCount: Int!) {
   issue(id: $id) {
     id
     identifier
@@ -57,7 +57,7 @@ query IssueByIdentifier($id: String!) {
       identifier
       title
     }
-    comments {
+    comments(first: $commentCount) {
       nodes {
         body
         createdAt

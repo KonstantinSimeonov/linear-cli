@@ -32,6 +32,7 @@ pub fn issue_create(config: &LrConfig, args: &AddIssueArgs) {
             config,
             issue_by_identifier::Variables {
                 id: identifier.clone(),
+                comment_count: 1
             },
         )
         .map(|data| data.issue.id)

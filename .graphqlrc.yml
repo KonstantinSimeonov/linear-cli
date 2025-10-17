@@ -1,0 +1,2 @@
+schema: ./src/graphql/linear_schema.graphql
+documents: ./src/graphql/**/*.graphql

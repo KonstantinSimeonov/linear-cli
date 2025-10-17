@@ -1,6 +1,6 @@
 use clap::Args;
-use colored::*;
 use regex::Regex;
+use termimad::crossterm::style::Stylize;
 
 use crate::{
     cli_config::LrConfig,
@@ -32,7 +32,10 @@ pub fn issue_view(config: &LrConfig, args: &ViewIssueArgs) {
     });
 
     let mut issue =
-        gql_request::<IssueByIdentifier>(config, issue_by_identifier::Variables { id: issue_id })
+        gql_request::<IssueByIdentifier>(config, issue_by_identifier::Variables {
+          id: issue_id,
+          comment_count: if args.comments { 50 } else { 1 }
+        })
             .expect("Failed to get issue")
             .issue;
 
@@ -42,14 +45,14 @@ pub fn issue_view(config: &LrConfig, args: &ViewIssueArgs) {
         return;
     }
 
-    render_issue(&mut issue);
+    render_issue(&mut issue, args);
 }
 
-fn render_issue(issue: &mut IssueByIdentifierIssue) {
+fn render_issue(issue: &mut IssueByIdentifierIssue, args: &ViewIssueArgs) {
     println!(
         "Issue: [{}] {}",
-        &issue.identifier.bold().blue(),
-        &issue.title.bold()
+        issue.identifier.clone().bold().blue(),
+        issue.title.clone().bold()
     );
 
     println!("Url: {}", issue.url);
@@ -57,8 +60,8 @@ fn render_issue(issue: &mut IssueByIdentifierIssue) {
     if let Some(parent) = issue.parent.as_ref() {
         println!(
             "Parent: [{}] {}",
-            parent.identifier.yellow(),
-            parent.title.yellow()
+            parent.identifier.clone().yellow(),
+            parent.title.clone().yellow()
         );
     }
 
@@ -72,25 +75,38 @@ fn render_issue(issue: &mut IssueByIdentifierIssue) {
             .unwrap_or("<None>"),
         issue.created_at.format("%d/%m/%Y")
     );
-    println!("{}", "─".repeat(30));
+    println!("{} Description {}", "─".repeat(30), "─".repeat(30));
     let description = issue
         .description
         .as_ref()
         .map(|description| description.as_str())
-        .unwrap_or("<No description>")
-        .italic();
-    println!("{}", description);
+        .unwrap_or("<No description>");
+    termimad::print_text(&description);
 
-    if issue.comments.nodes.len() > 0 {
-      issue.comments.nodes.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+    if issue.comments.nodes.len() > 0 && args.comments {
+        issue
+            .comments
+            .nodes
+            .sort_by(|a, b| a.created_at.cmp(&b.created_at));
 
-      println!("{} Comments {}", "─".repeat(10), "─".repeat(10));
-      for comment in issue.comments.nodes.iter() {
-        let commenter = comment.user.as_ref().map(|user| user.name.as_str()).unwrap_or("Unknown");
-        println!("{} at {}:", commenter, comment.created_at.format("%d/%m/%Y"));
-        println!("{}", comment.body);
-        println!();
-      }
+        println!("{} Comments {}", "─".repeat(30), "─".repeat(30));
+        for comment in issue.comments.nodes.iter() {
+            let commenter = comment
+                .user
+                .as_ref()
+                .map(|user| user.name.as_str())
+                .unwrap_or("Unknown");
+            let who = format!(
+                "{} at {}:",
+                commenter,
+                comment.created_at.format("%d/%m/%Y")
+            )
+            .white()
+            .on_dark_grey();
+            println!("{}", who);
+            termimad::print_text(&comment.body);
+            println!("{}", "─".repeat(60));
+        }
     }
 }
 
@@ -105,7 +121,11 @@ fn get_branch_name() -> std::io::Result<String> {
 pub struct ViewIssueArgs {
     id: Option<String>,
 
+    /// Whether to render comments
+    #[arg(short, long)]
+    comments: bool,
+
     /// Open in web browser
-    #[arg(short = 'w', long = "web")]
+    #[arg(short, long)]
     web: bool,
 }
