@@ -12,7 +12,7 @@ pub fn issue_list(config: &LrConfig, args: &ListIssueArgs) {
     let r = gql_request::<MyIssues>(
         config,
         my_issues::Variables {
-            first: args.count.clone().map(|c| c as i64).or(Some(20)),
+            first: Some(args.count),
             status: args.status.clone(),
         },
     );
@@ -32,6 +32,6 @@ pub struct ListIssueArgs {
     #[arg(short, long)]
     status: Option<String>,
 
-    #[arg(short = 'c', long = "count")]
-    count: Option<usize>,
+    #[arg(short, long, default_missing_value = "always", default_value_t = 20)]
+    count: i64,
 }

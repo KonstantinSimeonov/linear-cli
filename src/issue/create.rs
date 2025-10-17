@@ -165,18 +165,22 @@ pub struct AddIssueArgs {
     #[arg(short, long)]
     title: Option<String>,
 
+    /// Assignee name
     #[arg(short, long)]
     assignee: Option<String>,
 
     #[arg(short, long)]
     description: Option<String>,
 
+    /// Parent issue id, if any
     #[arg(short = 'p', long)]
     parent: Option<String>,
 
+    /// Create a git branch in the format $prefix/$issue_id-$issue-slug
     #[arg(short, long)]
     branch: bool,
 
+    /// In which project to create the issue
     #[arg(short = 'j', long)]
     project: Option<String>,
 }

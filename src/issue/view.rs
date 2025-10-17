@@ -82,6 +82,7 @@ fn get_branch_name() -> std::io::Result<String> {
 pub struct ViewIssueArgs {
     id: Option<String>,
 
+    /// Open in web browser
     #[arg(short = 'w', long = "web")]
     web: bool,
 }

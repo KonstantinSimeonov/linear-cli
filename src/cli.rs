@@ -23,7 +23,7 @@ pub enum Command {
     #[command(subcommand)]
     Login,
 
-    #[command(version, about)]
+    #[command(version, about = "Generate shell completion to stdout")]
     Completion(CompletionArgs),
 }
 
