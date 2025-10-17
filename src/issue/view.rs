@@ -31,7 +31,7 @@ pub fn issue_view(config: &LrConfig, args: &ViewIssueArgs) {
         )
     });
 
-    let issue =
+    let mut issue =
         gql_request::<IssueByIdentifier>(config, issue_by_identifier::Variables { id: issue_id })
             .expect("Failed to get issue")
             .issue;
@@ -42,10 +42,10 @@ pub fn issue_view(config: &LrConfig, args: &ViewIssueArgs) {
         return;
     }
 
-    render_issue(&issue);
+    render_issue(&mut issue);
 }
 
-fn render_issue(issue: &IssueByIdentifierIssue) {
+fn render_issue(issue: &mut IssueByIdentifierIssue) {
     println!(
         "Issue: [{}] {}",
         &issue.identifier.bold().blue(),
@@ -55,7 +55,11 @@ fn render_issue(issue: &IssueByIdentifierIssue) {
     println!("Url: {}", issue.url);
 
     if let Some(parent) = issue.parent.as_ref() {
-      println!("Parent: [{}] {}", parent.identifier.yellow(), parent.title.yellow());
+        println!(
+            "Parent: [{}] {}",
+            parent.identifier.yellow(),
+            parent.title.yellow()
+        );
     }
 
     println!(
@@ -76,6 +80,18 @@ fn render_issue(issue: &IssueByIdentifierIssue) {
         .unwrap_or("<No description>")
         .italic();
     println!("{}", description);
+
+    if issue.comments.nodes.len() > 0 {
+      issue.comments.nodes.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+
+      println!("{} Comments {}", "─".repeat(10), "─".repeat(10));
+      for comment in issue.comments.nodes.iter() {
+        let commenter = comment.user.as_ref().map(|user| user.name.as_str()).unwrap_or("Unknown");
+        println!("{} at {}:", commenter, comment.created_at.format("%d/%m/%Y"));
+        println!("{}", comment.body);
+        println!();
+      }
+    }
 }
 
 fn get_branch_name() -> std::io::Result<String> {

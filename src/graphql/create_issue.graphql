@@ -57,5 +57,14 @@ query IssueByIdentifier($id: String!) {
       identifier
       title
     }
+    comments {
+      nodes {
+        body
+        createdAt
+        user {
+          name
+        }
+      }
+    }
   }
 }
