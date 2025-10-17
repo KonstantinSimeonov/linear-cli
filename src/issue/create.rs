@@ -2,6 +2,7 @@ use std::iter;
 
 use crate::cli_config::LrConfig;
 use crate::graphql::blocking_request::gql_request;
+use crate::graphql::queries::create_issue::CreateIssueIssueCreateIssue;
 use crate::graphql::queries::{
     create_issue, issue_by_identifier, projects, team_memberships, teams, CreateIssue,
     IssueByIdentifier, Projects, TeamMemberships, Teams,
@@ -39,7 +40,7 @@ pub fn issue_create(config: &LrConfig, args: &AddIssueArgs) {
 
     let project_id = prompt_for_project(config, &args.project);
 
-    let create_issue_response = gql_request::<CreateIssue>(
+    let created_issue = gql_request::<CreateIssue>(
         config,
         create_issue::Variables {
             title: issue_title,
@@ -50,28 +51,41 @@ pub fn issue_create(config: &LrConfig, args: &AddIssueArgs) {
             project_id,
         },
     )
-    .unwrap();
-
-    let created_issue = create_issue_response.issue_create.issue.unwrap();
+    .expect("Failed to create issue")
+    .issue_create
+    .issue
+    .expect("Failed to get created issue");
 
     println!("{}", &created_issue.url);
 
     if args.branch {
-        let branch_suffix = created_issue.url.split("/").last().unwrap();
-        let branch_prefix = config
-            .branch_prefix
-            .clone()
-            .map(|prefix| format!("{}/{}", &prefix, &created_issue.identifier))
-            .unwrap_or(created_issue.identifier.clone());
-        let branch_name = format!("{}-{}", branch_prefix, branch_suffix);
+        let branch_name = get_branch_name(config, &created_issue);
         create_branch(&branch_name).unwrap();
     }
 }
 
-fn prompt_for_team(config: &LrConfig) -> Option<String> {
-    let teams_response = gql_request::<Teams>(config, teams::Variables {}).unwrap();
+fn get_branch_name(config: &LrConfig, created_issue: &CreateIssueIssueCreateIssue) -> String {
+    let branch_suffix = created_issue
+        .url
+        .split("/")
+        .last()
+        .expect(format!("Could not get branch name from {}", created_issue.url).as_str());
 
-    let teams = teams_response.teams.nodes;
+    let branch_prefix = config
+        .branch_prefix
+        .clone()
+        .map(|prefix| format!("{}/{}", &prefix, &created_issue.identifier))
+        .unwrap_or(created_issue.identifier.clone());
+    let branch_name = format!("{}-{}", branch_prefix, branch_suffix);
+
+    branch_name
+}
+
+fn prompt_for_team(config: &LrConfig) -> Option<String> {
+    let teams = gql_request::<Teams>(config, teams::Variables {})
+        .expect("Failed to get teams")
+        .teams
+        .nodes;
 
     let team_name = config
         .default_team
@@ -88,24 +102,24 @@ fn prompt_for_team(config: &LrConfig) -> Option<String> {
 }
 
 fn prompt_for_project(config: &LrConfig, project: &Option<String>) -> Option<String> {
-    let projects_response = gql_request::<Projects>(
+    let projects = gql_request::<Projects>(
         config,
         projects::Variables {
             first: Some(50),
             after: None,
         },
     )
-    .unwrap();
-
-    let projects = projects_response.projects.nodes;
+    .expect("Failed to get projects")
+    .projects
+    .nodes;
 
     project
         .clone()
         .or_else(|| {
-            let opts: Vec<String> = iter::once("<None>".to_string())
+            let project_options: Vec<String> = iter::once("<None>".to_string())
                 .chain(projects.iter().map(|proj| proj.name.clone()))
                 .collect();
-            Select::new("Project", opts).prompt().ok()
+            Select::new("Project", project_options).prompt().ok()
         })
         .and_then(move |project| {
             projects
@@ -126,24 +140,21 @@ fn prompt_for_assignee(
             team_id: team_id.to_string(),
         },
     )
-    .unwrap();
+    .expect("Failed get team memberships for assignee")
+    .team
+    .memberships
+    .nodes;
 
     let issue_assignee = assignee.clone().or_else(move || {
-        let m = memberships
-            .team
-            .memberships
-            .nodes
+        let assignee_options = memberships
             .iter()
             .map(|n| n.user.display_name.clone())
             .collect::<Vec<String>>();
-        let assignee_name = Select::new("Assignee", m)
+        let assignee_name = Select::new("Assignee", assignee_options)
             .with_page_size(50)
             .prompt()
             .unwrap();
         let assignee_id = memberships
-            .team
-            .memberships
-            .nodes
             .iter()
             .find(|n| n.user.display_name == assignee_name);
 
