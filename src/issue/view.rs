@@ -14,35 +14,35 @@ use crate::{
 };
 
 pub fn issue_view(config: &LrConfig, args: &ViewIssueArgs) {
-    let issue_id = args
-        .id
-        .clone()
-        .or_else(|| {
-            let branch_name = get_branch_name().unwrap();
-            let name = Regex::new(r"([A-Za-z]+-\d+)")
-                .unwrap()
-                .captures(branch_name.as_str())
-                .and_then(|capture| capture.get(1))
-                .map(|capture| capture.as_str().to_string());
+    let issue_id = args.id.clone().unwrap_or_else(|| {
+        let branch_name = get_branch_name().expect("Failed to get brach name");
+        let name = Regex::new(r"([A-Za-z]+-\d+)")
+            .expect("Invalid regex pattern")
+            .captures(branch_name.as_str())
+            .and_then(|capture| capture.get(1))
+            .map(|capture| capture.as_str().to_string());
 
-            name
-        })
-        .unwrap();
+        name.expect(
+            format!(
+                "Failed to parse issue name from branch name {}",
+                &branch_name
+            )
+            .as_str(),
+        )
+    });
 
-    let issue_response =
+    let issue =
         gql_request::<IssueByIdentifier>(config, issue_by_identifier::Variables { id: issue_id })
-            .unwrap();
+            .expect("Failed to get issue")
+            .issue;
 
     if args.web {
-        webbrowser::open_browser(
-            webbrowser::Browser::Default,
-            issue_response.issue.url.as_str(),
-        )
-        .unwrap();
+        webbrowser::open_browser(webbrowser::Browser::Default, issue.url.as_str())
+            .expect("Failed to open browser");
         return;
     }
 
-    render_issue(&issue_response.issue);
+    render_issue(&issue);
 }
 
 fn render_issue(issue: &IssueByIdentifierIssue) {
