@@ -35,6 +35,7 @@ query IssueByIdentifier($id: String!) {
     title
     description
     url
+    createdAt
     state {
       id
       name
@@ -48,6 +49,13 @@ query IssueByIdentifier($id: String!) {
       id
       name
       key
+    }
+    project {
+      name
+    }
+    parent {
+      identifier
+      title
     }
   }
 }

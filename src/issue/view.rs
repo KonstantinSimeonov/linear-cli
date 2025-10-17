@@ -46,20 +46,27 @@ pub fn issue_view(config: &LrConfig, args: &ViewIssueArgs) {
 }
 
 fn render_issue(issue: &IssueByIdentifierIssue) {
-    println!();
     println!(
-        "[{}] {}",
+        "Issue: [{}] {}",
         &issue.identifier.bold().blue(),
         &issue.title.bold()
     );
+
+    println!("Url: {}", issue.url);
+
+    if let Some(parent) = issue.parent.as_ref() {
+      println!("Parent: [{}] {}", parent.identifier.yellow(), parent.title.yellow());
+    }
+
     println!(
-        "Status: {} Assignee: {}",
+        "Status: {} Assignee: {} Created at: {}",
         &issue.state.name,
         issue
             .assignee
             .as_ref()
             .map(|assignee| assignee.name.as_str())
-            .unwrap_or("<None>")
+            .unwrap_or("<None>"),
+        issue.created_at.format("%d/%m/%Y")
     );
     println!("{}", "─".repeat(30));
     let description = issue
