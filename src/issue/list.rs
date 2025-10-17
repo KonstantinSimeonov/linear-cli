@@ -9,15 +9,18 @@ use clap::Args;
 use colored::*;
 
 pub fn issue_list(config: &LrConfig, args: &ListIssueArgs) {
-    let r = gql_request::<MyIssues>(
+    let issues = gql_request::<MyIssues>(
         config,
         my_issues::Variables {
             first: Some(args.count),
             status: args.status.clone(),
         },
-    );
+    ).expect("Failed to get issues")
+      .viewer
+      .assigned_issues
+      .nodes;
 
-    for node in r.unwrap().viewer.assigned_issues.nodes.iter() {
+    for node in issues.iter() {
         println!(
             "[{}] {} {}",
             node.identifier.bold().blue(),
