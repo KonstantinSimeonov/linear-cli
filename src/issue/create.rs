@@ -1,6 +1,7 @@
 use std::iter;
 
 use crate::cli_config::LrConfig;
+use crate::git;
 use crate::graphql::blocking_request::gql_request;
 use crate::graphql::queries::create_issue::CreateIssueIssueCreateIssue;
 use crate::graphql::queries::{
@@ -60,26 +61,9 @@ pub fn issue_create(config: &LrConfig, args: &AddIssueArgs) {
     println!("{}", &created_issue.url);
 
     if args.branch {
-        let branch_name = get_branch_name(config, &created_issue);
-        create_branch(&branch_name).unwrap();
+        let branch_name = git::get_branch_name(config, &created_issue.url, &created_issue.identifier);
+        git::create_branch(&branch_name).unwrap();
     }
-}
-
-fn get_branch_name(config: &LrConfig, created_issue: &CreateIssueIssueCreateIssue) -> String {
-    let branch_suffix = created_issue
-        .url
-        .split("/")
-        .last()
-        .expect(format!("Could not get branch name from {}", created_issue.url).as_str());
-
-    let branch_prefix = config
-        .branch_prefix
-        .clone()
-        .map(|prefix| format!("{}/{}", &prefix, &created_issue.identifier))
-        .unwrap_or(created_issue.identifier.clone());
-    let branch_name = format!("{}-{}", branch_prefix, branch_suffix);
-
-    branch_name
 }
 
 fn prompt_for_team(config: &LrConfig) -> Option<String> {
@@ -106,7 +90,7 @@ fn prompt_for_project(config: &LrConfig, project: &Option<String>) -> Option<Str
     let projects = gql_request::<Projects>(
         config,
         projects::Variables {
-            first: Some(50),
+            first: Some(100),
             after: None,
         },
     )
@@ -163,13 +147,6 @@ fn prompt_for_assignee(
     });
 
     issue_assignee
-}
-
-fn create_branch(name: &str) -> std::io::Result<String> {
-    std::process::Command::new("git")
-        .args(["switch", "-C", name])
-        .output()
-        .map(|output| String::from_utf8(output.stdout).unwrap())
 }
 
 #[derive(Args)]

@@ -5,6 +5,7 @@ mod graphql;
 mod client;
 mod cli_config;
 mod project;
+mod git;
 
 use crate::{cli::Cli, cli_config::load_config};
 use crate::exec::Execute;
