@@ -1,0 +1,11 @@
+query SearchProjects(
+  $term: String!,
+  $first: Int = 50
+) {
+  searchProjects(term: $term, first: $first) {
+    nodes {
+      id
+      name
+    }
+  }
+}

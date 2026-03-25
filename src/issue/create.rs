@@ -3,10 +3,9 @@ use std::iter;
 use crate::cli_config::LrConfig;
 use crate::git;
 use crate::graphql::blocking_request::gql_request;
-use crate::graphql::queries::create_issue::CreateIssueIssueCreateIssue;
 use crate::graphql::queries::{
-    create_issue, issue_by_identifier, projects, team_memberships, teams, CreateIssue,
-    IssueByIdentifier, Projects, TeamMemberships, Teams,
+    create_issue, issue_by_identifier, projects, search_projects, team_memberships, teams,
+    CreateIssue, IssueByIdentifier, Projects, SearchProjects, TeamMemberships, Teams,
 };
 use clap::Args;
 use inquire::{Editor, Select, Text};
@@ -86,32 +85,94 @@ fn prompt_for_team(config: &LrConfig) -> Option<String> {
     team_id.map(|t| t.id.clone())
 }
 
+const SEARCH_OPTION: &str = "Search for project...";
+const NONE_OPTION: &str = "<None>";
+const PROJECT_PAGE_SIZE: i64 = 50;
+
 fn prompt_for_project(config: &LrConfig, project: &Option<String>) -> Option<String> {
-    let projects = gql_request::<Projects>(
+    let result = gql_request::<Projects>(
         config,
         projects::Variables {
-            first: Some(100),
+            first: Some(PROJECT_PAGE_SIZE),
             after: None,
         },
     )
     .expect("Failed to get projects")
-    .projects
-    .nodes;
+    .projects;
 
-    project
-        .clone()
-        .or_else(|| {
-            let project_options: Vec<String> = iter::once("<None>".to_string())
-                .chain(projects.iter().map(|proj| proj.name.clone()))
-                .collect();
-            Select::new("Project", project_options).prompt().ok()
-        })
-        .and_then(move |project| {
-            projects
-                .iter()
-                .find(|proj| proj.name == project)
-                .map(|proj| proj.id.clone())
-        })
+    let projects = result.nodes;
+    let has_more = result.page_info.has_next_page;
+
+    if let Some(name) = project {
+        return find_project_id(&projects, name)
+            .or_else(|| search_project_by_name(config, name));
+    }
+
+    let mut options: Vec<String> = vec![NONE_OPTION.to_string()];
+    if has_more {
+        options.push(SEARCH_OPTION.to_string());
+    }
+    options.extend(projects.iter().map(|p| p.name.clone()));
+
+    let selection = Select::new("Project", options).prompt().ok()?;
+
+    match selection.as_str() {
+        NONE_OPTION => None,
+        SEARCH_OPTION => prompt_search_project(config),
+        _ => find_project_id(&projects, &selection),
+    }
+}
+
+fn find_project_id(projects: &[projects::ProjectsProjectsNodes], name: &str) -> Option<String> {
+    projects.iter().find(|p| p.name == name).map(|p| p.id.clone())
+}
+
+fn search_projects(
+    config: &LrConfig,
+    term: &str,
+) -> Vec<search_projects::SearchProjectsSearchProjectsNodes> {
+    gql_request::<SearchProjects>(
+        config,
+        search_projects::Variables {
+            term: term.to_string(),
+            first: Some(PROJECT_PAGE_SIZE),
+        },
+    )
+    .expect("Failed to search projects")
+    .search_projects
+    .nodes
+}
+
+fn search_project_by_name(config: &LrConfig, name: &str) -> Option<String> {
+    let results = search_projects(config, name);
+    results
+        .iter()
+        .find(|p| p.name == name)
+        .map(|p| p.id.clone())
+}
+
+fn prompt_search_project(config: &LrConfig) -> Option<String> {
+    let term = Text::new("Search term:").prompt().ok()?;
+    let results = search_projects(config, &term);
+
+    if results.is_empty() {
+        println!("No projects found.");
+        return None;
+    }
+
+    let options: Vec<String> = iter::once(NONE_OPTION.to_string())
+        .chain(results.iter().map(|p| p.name.clone()))
+        .collect();
+
+    let selection = Select::new("Project", options).prompt().ok()?;
+
+    match selection.as_str() {
+        NONE_OPTION => None,
+        _ => results
+            .iter()
+            .find(|p| p.name == selection)
+            .map(|p| p.id.clone()),
+    }
 }
 
 fn prompt_for_assignee(

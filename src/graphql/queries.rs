@@ -57,3 +57,11 @@ pub struct UpdateIssue;
     response_derives = "Debug, Serialize, Deserialize"
 )]
 pub struct Projects;
+
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "src/graphql/linear_schema.graphql",
+    query_path = "src/graphql/search_projects.graphql",
+    response_derives = "Debug, Serialize, Deserialize"
+)]
+pub struct SearchProjects;
